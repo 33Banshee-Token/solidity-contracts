@@ -468,14 +468,14 @@ contract Ownable is Context {
     function lock(uint256 time) public virtual onlyOwner {
         _previousOwner = _owner;
         _owner = address(0);
-        _lockTime = now + time;
+        _lockTime = block.timestamp + time;
         emit OwnershipTransferred(_owner, address(0));
     }
     
     //Unlocks the contract for owner when _lockTime is exceeds
     function unlock() public virtual {
         require(_previousOwner == msg.sender, "You don't have permission to unlock");
-        require(now > _lockTime , "Contract is locked until 7 days");
+        require(block.timestamp > _lockTime , "Contract is locked until 7 days");
         emit OwnershipTransferred(_owner, _previousOwner);
         _owner = _previousOwner;
     }
@@ -787,16 +787,7 @@ library SafeMath {
 // File: contracts/Banshee.sol
 
 
-
 // pragma solidity ^0.6.12;
-
-
-
-
-
-
-
-
 
 contract Banshee is Context, IERC20, Ownable {
     using SafeMath for uint256;
@@ -875,9 +866,9 @@ contract Banshee is Context, IERC20, Ownable {
         // Router: 0xD99D1c33F9fC3444f8101754aBC46c52416550D1
         
         // PancakeSwap mainnet:
-        // Router: 0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F
+        // Router: 0x10ED43C718714eb63d5aA57B78B54704E256024E
         
-        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x05fF2B0DB69458A0750badebc4f9e13aDd608C7F);
+        IUniswapV2Router02 _uniswapV2Router = IUniswapV2Router02(0x10ED43C718714eb63d5aA57B78B54704E256024E);
          // Create a uniswap pair for this new token
         uniswapV2Pair = IUniswapV2Factory(_uniswapV2Router.factory())
             .createPair(address(this), _uniswapV2Router.WETH());
@@ -1003,7 +994,7 @@ contract Banshee is Context, IERC20, Ownable {
     
     function drawLottery() external onlyOwner() {
         // Validate that there is at least some tokens in the lottery wallet.
-        require(balanceOf(_lotteryWallet) > 1);
+        require(balanceOf(_lotteryWallet) > 1, "LOTTERY: Prize Pot too small");
         
         // Create an array of players based on all holders
         address[] storage lotteryPlayers = _players;
@@ -1015,9 +1006,9 @@ contract Banshee is Context, IERC20, Ownable {
         }
         
         // At least two players/holders in order to draw lottery
-        require(lotteryPlayers.length > 2);
+        require(lotteryPlayers.length > 2, "LOTTERY: Not enough players in lottery");
         
-        // Geenrate a random number based on the amount of players in lottery
+        // Generate a random number based on the amount of players in lottery
         uint256 number = random(lotteryPlayers.length);
         
         // Calculate distribution of prize tokens. 
@@ -1046,7 +1037,7 @@ contract Banshee is Context, IERC20, Ownable {
     }
     
     function random(uint256 _maxLength) internal returns (uint256) {
-        uint randomnumber = uint(keccak256(abi.encodePacked(now, msg.sender, nonce))) % _maxLength;
+        uint randomnumber = uint(keccak256(abi.encodePacked(block.timestamp, msg.sender, nonce))) % _maxLength;
         randomnumber = randomnumber;
         nonce++;
         return randomnumber;
@@ -1082,6 +1073,10 @@ contract Banshee is Context, IERC20, Ownable {
     
     function setLotteryFeePercent(uint256 lotteryFee) external onlyOwner() {
         _lotteryFee = lotteryFee;
+    }
+    
+    function setMinimumLotteryBalanceRequirement(uint256 minimum) external onlyOwner() {
+        _minimumLotteryBalance = minimum;
     }
    
     function setMaxTxPercent(uint256 maxTxPercent) external onlyOwner() {
